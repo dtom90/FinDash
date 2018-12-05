@@ -7,6 +7,7 @@
     "npm": "6.2.x"
   },
   "scripts": {
+    "dev": "PORT=3001 node ./bin/www",
     "start": "node ./bin/www",
     "test": "./node_modules/.bin/wdio test/wdio.conf.js",
     "build_client": "cd client && react-scripts build"

@@ -25,13 +25,13 @@ Built with Node.js + React.js and connects to Db2 system using [IBM Common SQL E
 
 - Run Backend
   ```
-  npm start &
+  npm dev &
   ```
 
 - Run Frontend (separate process)
   ```
   cd client
-  npm start
+  npm dev
   ```
 
 ## Docker
