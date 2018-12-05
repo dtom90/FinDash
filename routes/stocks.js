@@ -1,9 +1,9 @@
 let express = require('express');
-let router = express.Router();
+let router = express();
 let fs = require('fs');
 let path = require('path');
 let csv_parse = require('csv-parse');
-let ibmDB = require('../db/ibm-db');
+// let ibmDB = require('../db/ibm-db');
 
 const timeFrame = "AND TRADE_DATE >= '2016-09-01' AND TRADE_DATE <= '2017-07-19'";
 
@@ -72,7 +72,7 @@ router.get('/news/', function(req, res, next) {
   }
   newsQuery += newsQueryEnd.slice(0, indexOfMax) + maxRows + newsQueryEnd.slice(offsetMax);
 
-  ibmDB.queryDatabase(newsQuery, stockNews => res.json(stockNews));
+  // ibmDB.queryDatabase(newsQuery, stockNews => res.json(stockNews));
 });
 
 router.get('/currencies', function(req, res, next) {
@@ -83,31 +83,32 @@ router.get('/corr/stocks', function(req, res, next) {
 
   let stock1 = req.query.stock1;
   let stock2 = req.query.stock2;
+  res.json({ stock1: stock1, stock2: stock2, dates: [], correlations: [] });
 
-  ibmDB.queryDatabase(queryStocks, function(pairs){
-    let stocks;
-    pairs.forEach((pair) => {
-      stocks = Object.values(pair);
-      if(stocks.includes(stock1) && stocks.includes(stock2)){
-
-        let query  = queryStockCorrelation.slice(0, posSym1) +
-          pair['SYMBOL1'] + queryStockCorrelation.slice(posSym1+1, posSym2) +
-          pair['SYMBOL2'] + queryStockCorrelation.slice(posSym2+1);
-
-        ibmDB.queryDatabase(query, function(data){
-          if (data.length > 0 && data[0]['SYMBOL1'] === pair['SYMBOL1'] && data[0]['SYMBOL2'] === pair['SYMBOL2']) {
-            res.json({
-              stock1: stock1, stock2: stock2,
-              dates: data.map(function(x){ return x['TRADE_DATE']; }),
-              correlations: data.map(function(x){ return x['CORRELATION']; })
-            });
-          } else
-            res.json({ stock1: stock1, stock2: stock2, dates: [], correlations: [] });
-        });
-      } else
-        res.json({ stock1: stock1, stock2: stock2, dates: [], correlations: [] });
-    });
-  });
+  // ibmDB.queryDatabase(queryStocks, function(pairs){
+  //   let stocks;
+  //   pairs.forEach((pair) => {
+  //     stocks = Object.values(pair);
+  //     if(stocks.includes(stock1) && stocks.includes(stock2)){
+  //
+  //       let query  = queryStockCorrelation.slice(0, posSym1) +
+  //         pair['SYMBOL1'] + queryStockCorrelation.slice(posSym1+1, posSym2) +
+  //         pair['SYMBOL2'] + queryStockCorrelation.slice(posSym2+1);
+  //
+  //       ibmDB.queryDatabase(query, function(data){
+  //         if (data.length > 0 && data[0]['SYMBOL1'] === pair['SYMBOL1'] && data[0]['SYMBOL2'] === pair['SYMBOL2']) {
+  //           res.json({
+  //             stock1: stock1, stock2: stock2,
+  //             dates: data.map(function(x){ return x['TRADE_DATE']; }),
+  //             correlations: data.map(function(x){ return x['CORRELATION']; })
+  //           });
+  //         } else
+  //           res.json({ stock1: stock1, stock2: stock2, dates: [], correlations: [] });
+  //       });
+  //     } else
+  //       res.json({ stock1: stock1, stock2: stock2, dates: [], correlations: [] });
+  //   });
+  // });
 
 });
 
@@ -120,17 +121,19 @@ router.get('/corr/curr', function(req, res, next) {
     queryCurrencyCorrelation.slice(posSym+1, posCurr) +
     currency + queryCurrencyCorrelation.slice(posCurr+1);
 
-  ibmDB.queryDatabase(query, function(data){
+  res.json({ stock: stock, currency: currency, dates: [], correlations: [] });
 
-    if (data.length > 0 && data[0]['SYMBOL'] === req.query.stock) {
-      res.json({
-        stock: stock, currency: currency,
-        dates: data.map(function(x){ return x['TRADE_DATE']; }),
-        correlations: data.map(function(x){ return x['CORRELATION']; })
-      });
-    } else
-    res.json({ stock: stock, currency: currency, dates: [], correlations: [] });
-  });
+  // ibmDB.queryDatabase(query, function(data){
+  //
+  //   if (data.length > 0 && data[0]['SYMBOL'] === req.query.stock) {
+  //     res.json({
+  //       stock: stock, currency: currency,
+  //       dates: data.map(function(x){ return x['TRADE_DATE']; }),
+  //       correlations: data.map(function(x){ return x['CORRELATION']; })
+  //     });
+  //   } else
+  //   res.json({ stock: stock, currency: currency, dates: [], correlations: [] });
+  // });
 
 });
 
@@ -138,17 +141,19 @@ router.get('/:stock', function(req, res, next) {
 
   let query = queryStockPrices.slice(0, pos) + req.params.stock + queryStockPrices.slice(pos+1);
 
-  ibmDB.queryDatabase(query, function(data){
-    if (data.length > 0 && data[0]['SYMBOL'] === req.params.stock) {
-      res.json({
-        stock: req.params.stock,
-        dates: data.map(function(x){ return x['TRADE_DATE']; }),
-        prices: data.map(function(x){ return x['CLOSE_PRICE']; })
-      });
-    } else {
-      res.json({ stock: req.params.stock, dates: [], prices: [] });
-    }
-  });
+  res.json({ stock: req.params.stock, dates: [], prices: [] });
+
+  // ibmDB.queryDatabase(query, function(data){
+  //   if (data.length > 0 && data[0]['SYMBOL'] === req.params.stock) {
+  //     res.json({
+  //       stock: req.params.stock,
+  //       dates: data.map(function(x){ return x['TRADE_DATE']; }),
+  //       prices: data.map(function(x){ return x['CLOSE_PRICE']; })
+  //     });
+  //   } else {
+  //     res.json({ stock: req.params.stock, dates: [], prices: [] });
+  //   }
+  // });
 
 });
 

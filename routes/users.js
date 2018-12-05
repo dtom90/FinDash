@@ -3,7 +3,7 @@ let router = express.Router();
 let fs = require('fs');
 let csv_parse = require('csv-parse/lib/sync');
 let path = require('path');
-let ibmDB = require('../db/ibm-db');
+// let ibmDB = require('../db/ibm-db');
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
@@ -14,16 +14,18 @@ router.get('/clients', function(req, res, next) {
   let clients = getUsers()['clients'];
   let ids = clients.map(client => client.id);
 
-  ibmDB.queryDatabase("SELECT \"CustID\", \"AccountBalance\" FROM BROKERAGE_CUST WHERE \"CustID\" IN (" + ids + ")",
-    async (clientDetails) => {
-      clientDetails = clientDetails.reduce((acc, client) => {
-        acc[client.CustID] = client.AccountBalance;
-        return acc;
-      }, {});
-      await clients.forEach((client) => client['acc_bal'] = clientDetails[client.id]);
-      res.json(clients);
-    }
-  );
+  res.json(clients);
+
+  // ibmDB.queryDatabase("SELECT \"CustID\", \"AccountBalance\" FROM BROKERAGE_CUST WHERE \"CustID\" IN (" + ids + ")",
+  //   async (clientDetails) => {
+  //     clientDetails = clientDetails.reduce((acc, client) => {
+  //       acc[client.CustID] = client.AccountBalance;
+  //       return acc;
+  //     }, {});
+  //     await clients.forEach((client) => client['acc_bal'] = clientDetails[client.id]);
+  //     res.json(clients);
+  //   }
+  // );
 });
 
 router.get('/clients/:id', async function(req, res, next) {
@@ -32,12 +34,14 @@ router.get('/clients/:id', async function(req, res, next) {
 
   let client = getUsers()['clients'].filter((client) => client.id === clientID)[0];
 
-  ibmDB.queryDatabase( "SELECT * FROM BROKERAGE_CUST WHERE \"CustID\"="+clientID,
-    (clientDetails) => {
-      Object.assign(client, clientDetails[0]);
-      res.json(client);
-    }
-  );
+  res.json(client);
+
+  // ibmDB.queryDatabase( "SELECT * FROM BROKERAGE_CUST WHERE \"CustID\"="+clientID,
+  //   (clientDetails) => {
+  //     Object.assign(client, clientDetails[0]);
+  //     res.json(client);
+  //   }
+  // );
 });
 
 function getUsers() {
