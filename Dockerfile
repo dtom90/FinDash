@@ -1,4 +1,4 @@
-FROM node:8
+FROM node:13
 
 ENV NODE_ENV production
 

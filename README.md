@@ -12,7 +12,7 @@ Built with Node.js + React.js and connects to Db2 system using [IBM Common SQL E
   npm install
   ```
 
-- Set Environment Variables
+- Set Environment Variables (Optional, for Db2)
   
   Copy `.env.example` to new file `.env` and fill in variables with your DB connection credentials:
   ```
@@ -38,7 +38,7 @@ Built with Node.js + React.js and connects to Db2 system using [IBM Common SQL E
 
 #### Build
 
-##### From GitHub: 
+##### From GitHub:
 ```
 docker build -t findash https://github.com/IBM-DSE/FinDash
 ```
@@ -55,6 +55,11 @@ docker build -t findash .
 ```
 
 #### Run
+```
+docker run -it -p 3000:3000 findash
+```
+
+##### Run with Db2
 ```
 docker run -it --env-file .env -p 3000:3000 findash
 ```
