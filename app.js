@@ -11,7 +11,7 @@ const bodyParser = require('body-parser');
 const sassMiddleware = require('node-sass-middleware');
 
 const index = require('./routes/index');
-const users = require('./routes/users');
+const clients = require('./routes/clients');
 const stocks = require('./routes/stocks');
 
 const app = express();
@@ -33,7 +33,7 @@ app.use(sassMiddleware({
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/api/users', users);
+app.use('/api/clients', clients);
 app.use('/api/stocks', stocks);
 
 if ((process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test')) {

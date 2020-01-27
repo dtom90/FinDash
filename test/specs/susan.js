@@ -16,7 +16,7 @@ describe('Susan prepares for her meeting with Leo Rakes', () => {
     browser.url(url);
 
     // Page title and Welcome text
-    browser.getTitle().should.equal('React App');
+    browser.getTitle().should.equal('Financial Advisor Dashboard');
     browser.getText('a=Financial Advisor Dashboard');
     browser.getText('h1=Welcome, Susan!');
 
@@ -42,7 +42,7 @@ describe('Susan prepares for her meeting with Leo Rakes', () => {
     // Recent Market News
     browser.getText('h2=Recent Market News');
     browser.waitForExist('div.panel.panel-default');
-    // TODO: browser.getText('h3.panel-title').should.containEql('The US dollar will rebound in the second half of 2017, says JPMorgan')
+    browser.getText('h3.panel-title').should.containEql('The US dollar will rebound in the second half of 2017, says JPMorgan')
 
   });
 
@@ -122,7 +122,7 @@ describe('Susan prepares for her meeting with Leo Rakes', () => {
 
     // Filter relevant market news from early November
     $('#news-panel').click('button*=2016-09-01 - 2017-07-19');
-    $('div*=Oct 2016').click('.glyphicon-chevron-right');
+    $('div*=Oct 2016').click('.next');
     let nov = $$('div*=Nov 2016');
     nov.last().click('td=1');
     nov.last().click('td=12');
@@ -130,24 +130,27 @@ describe('Susan prepares for her meeting with Leo Rakes', () => {
     browser.waitForText('h3.panel-title=Donald Trump and the Stock Market: Did You Miss These Moves?');
 
     // Click article about impact of the election on the stock market
-    $('div.panel*=Donald Trump and the Stock Market: Did You Miss These Moves?').click('a');
-    browser.switchTab(browser.windowHandles().value[1]);
+    $('div.panel*=Donald Trump and the Stock Market: Did You Miss These Moves?').click('a').pause(2000);
 
-    // Disabled due to webdriver waiting for full page load, taking too long
-    // browser.getText("h1=Donald Trump and the Stock Market: Did You Miss These Moves?");
-    // browser.getText("h2=Fiat Chrysler's Trump card");
-    // browser.getText("p*=The belief is that the emissions").should.equal(
-    //   "The story is simple: Trump plans to complete a comprehensive review of all federal regulations, " +
-    //   "especially the fuel economy and emissions standards. The belief is that the emissions standards, " +
-    //   "set to require fleets to average 54.5 miles per gallon by 2025, will be relaxed significantly.");
-    // browser.getText('p*=Fiat Chrysler Automobiles').should.equal(
-    //   "That's also why Fiat Chrysler Automobiles (NYSE: FCAU) jumped the highest this week. " +
-    //   "It benefited the most since it was drastically behind the industry in terms of developing " +
-    //   "electric vehicles or hybrids and still heavily relies on Jeep and Ram Truck for profits.");
+    // Check for a new window with url and article content
+    const url = 'https://www.nasdaq.com/article/donald-trump-and-the-stock-market-did-you-miss-these-moves-cm708221';
+    browser.waitUntil(function () {
+      const window2 = browser.windowHandles().value[1];
+      return browser.window(window2).getUrl() === url
+    }, 5000, 'expected url to be different after 5s');
+    browser.getText("h1=Donald Trump and the Stock Market: Did You Miss These Moves?");
+    browser.getText("h2=Fiat Chrysler's Trump card");
+    browser.getText("p*=The belief is that the emissions").should.equal(
+      "The story is simple: Trump plans to complete a comprehensive review of all federal regulations, " +
+      "especially the fuel economy and emissions standards. The belief is that the emissions standards, " +
+      "set to require fleets to average 54.5 miles per gallon by 2025, will be relaxed significantly.");
+    browser.getText('p*=Fiat Chrysler Automobiles').should.equal(
+      "That's also why Fiat Chrysler Automobiles (NYSE: FCAU) jumped the highest this week. " +
+      "It benefited the most since it was drastically behind the industry in terms of developing " +
+      "electric vehicles or hybrids and still heavily relies on Jeep and Ram Truck for profits.");
 
     // Switch back to FinDash
     browser.switchTab();
-    console.log(browser.getCurrentTabId());
     browser.getText('a=Financial Advisor Dashboard');
 
     // Toggle off all Auto stocks
@@ -167,15 +170,21 @@ describe('Susan prepares for her meeting with Leo Rakes', () => {
     shouldBeSelected('#plot-RACE');
 
     // Plot the correlation between the two
+    const correlationDropdown = $('div*=Plot Correlation');
     $('button=Plot Correlation').click();
-    $('div*=Plot Correlation').click('label=Ferrari NV (RACE)');
-    $('div*=Plot Correlation').click('label=Honda (HMC)');
+    correlationDropdown.getText('h4=Stock Tickers');
+    correlationDropdown.getText('h4=Currency Exchange Rates');
+    correlationDropdown.click('label=Ferrari NV (RACE)');
+    correlationDropdown.click('label=Honda (HMC)');
     browser.waitForExist('#corr-plot');
 
     // Plot the correlation between Honda and currency moves in Yen vs Dollar
     $('button=Plot Correlation').click();
-    $('div*=Plot Correlation').click('label=Honda (HMC)');
-    $('div*=Plot Correlation').click('label=JPY / USD');
+    correlationDropdown.getText('h4=Displayed Correlations');
+    correlationDropdown.getText('label*=Corr ( RACE , HMC )');
+    correlationDropdown.click('label=Honda (HMC)');
+    correlationDropdown.click('label=JPY / USD');
+    correlationDropdown.getText('label*=Corr ( HMC , DEXJPUS )');
   });
 
 });
@@ -199,13 +208,12 @@ function checkDefaultChartState() {
   shouldBeSelected('#plot-GOOGL');
   shouldBeSelected('#plot-AAPL');
 
-  $('button#corr-sel').getText().should.equal('Plot Correlation');
+  // $('button#corr-sel').getText().should.equal('Plot Correlation');
   $('button.selected-date-range-btn').getText().should.equal('2016-09-01 - 2017-07-05');
 }
 
 const loadWait = 3;
 function shouldBeSelected(id) {
-  $(id+' > input').isSelected().should.be.true();
   let label = $(id);
   label.getAttribute('class').should.containEql('active');
   browser.waitUntil(() => label.getAttribute('style').includes('background-color: rgb('),
@@ -214,7 +222,6 @@ function shouldBeSelected(id) {
 }
 
 function shouldBeDeselected(id) {
-  $(id+' > input').isSelected().should.be.false();
   $(id).getAttribute('class').should.not.containEql('active');
 }
 

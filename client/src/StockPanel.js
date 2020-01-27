@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
-import { Row, Col, Glyphicon, ControlLabel, Checkbox, Button, DropdownButton, ToggleButton, ToggleButtonGroup } from 'react-bootstrap';
+import { Row, Col, Glyphicon, ControlLabel, Checkbox, Button, ToggleButton, ToggleButtonGroup, DropdownButton } from 'react-bootstrap';
+import DateRangePicker from 'react-bootstrap-daterangepicker';
 import StockChart from './StockChart';
-import './daterangepicker.css';
-let DateRangePicker = require('react-bootstrap-daterangepicker');
-let moment = require('moment');
+const moment = require('moment');
 
 class StockPanel extends Component {
   constructor(props) {
@@ -37,7 +36,8 @@ class StockPanel extends Component {
 
   componentDidMount() {
     if(Object.keys(this.state.stocks).length === 0)
-      fetch('/api/stocks').then(res => res.json()).then(stocks => this.setState({stocks}));
+      fetch('/api/stocks')
+        .then(res => res.json()).then(stocks => this.setState({stocks}));
 
     fetch('/api/stocks/currencies')
       .then(res => res.json()).then(currencies => this.setState({currencies}));
@@ -46,12 +46,13 @@ class StockPanel extends Component {
   render() {
 
     // Initialize Date Variables
-    let start = this.state.startDate.format('YYYY-MM-DD');
-    let end = this.state.endDate.format('YYYY-MM-DD');
+    const start = this.state.startDate.format('YYYY-MM-DD');
+    const end = this.state.endDate.format('YYYY-MM-DD');
     let label = start + ' - ' + end;
     if (start === end) { label = start; }
 
-    let newDisplayStocks = JSON.parse(JSON.stringify(this.state.displayStocks));
+    const newDisplayStocks = Object.keys(this.state.stocks).length === 0 ? [] :
+      JSON.parse(JSON.stringify(this.state.displayStocks));
 
     return(
       <div id="stock-panel">
@@ -80,15 +81,27 @@ class StockPanel extends Component {
 
         <Row>
 
-          <DropdownButton title='Plot Correlation' id='corr-sel' className="larger" style={{marginRight: '100px'}}
+          <DropdownButton title='Plot Correlation' id='corr-sel' className="larger" style={{marginRight: '300px'}}
                           open={this.state.corrDropdownExpanded} onToggle={this.onCorrDropdownToggle}>
-            <div style={{display: 'table'}}>
-              <ToggleButtonGroup type="checkbox" style={{display: 'table-cell'}}>
-                {this.stockCorrelationList(this.state.displayStocks)}
-              </ToggleButtonGroup>
-              <ToggleButtonGroup type="checkbox" style={{display: 'table-cell'}}>
-                {this.currencyCorrelationList(this.state.currencies)}
-              </ToggleButtonGroup>
+            <div className="flex-row">
+              <div className="flex-elem">
+                <h4>Stock Tickers</h4>
+                {this.stockCorrelationList(this.state.displayStocks, this.state.corrSelections)}
+              </div>
+              <div className="flex-elem">
+                <h4>Currency Exchange Rates</h4>
+                {this.currencyCorrelationList(this.state.currencies, this.state.corrSelections)}
+              </div>
+              {this.state.correlations.length > 0 && <div className="flex-elem">
+                <h4>Displayed Correlations</h4>
+                {this.state.correlations.map(elem => {
+                  return (
+                    <ToggleButtonGroup key={elem} type="checkbox" defaultValue={[elem]}>
+                      <ToggleButton id={'disp-'+elem} value={elem} className='btn-stock' block>{elem}</ToggleButton>
+                    </ToggleButtonGroup>
+                  )
+                })}
+              </div>}
             </div>
           </DropdownButton>
 
@@ -116,18 +129,19 @@ class StockPanel extends Component {
   }
 
   stockCategories(stocks, displayStocks) {
-    let categories = Object.keys(stocks.categories);
-    let width = Math.floor(12/categories.length).toString();
+    const categories = Object.keys(stocks.categories);
+    const width = Math.floor(12/categories.length).toString();
     return (categories.map(category => {
 
-      let selected = stocks.categories[category].map(stock => stock).every(stock => displayStocks.includes(stock));
+      const selected = stocks.categories[category].map(stock => stock).every(stock => displayStocks.includes(stock));
+      const defaultValue = selected ? [category] : [];
 
       return (<div key={"category-"+category} className={"category col-md-"+width}>
 
         <h3>{category}</h3>
 
-        <ToggleButtonGroup type="checkbox" className="full-width">
-          <ToggleButton id={'all-'+category} value={category} checked={selected} onChange={this.onSelectAllStocks} block>
+        <ToggleButtonGroup type="checkbox" className="full-width" defaultValue={defaultValue}>
+          <ToggleButton id={'all-'+category} value={category} onChange={this.onSelectAllStocks} block>
             <strong><Glyphicon glyph='check'/> Select All</strong>
           </ToggleButton>
         </ToggleButtonGroup>
@@ -140,10 +154,11 @@ class StockPanel extends Component {
 
   stockList(arr, displayStocks) {
     return (arr.map((elem) => {
+      const selected = displayStocks.includes(elem) ? [elem] : [];
       return (
-        <ToggleButtonGroup key={elem} type="checkbox" className="full-width margin-top-sm">
-          <ToggleButton id={'plot-'+elem} value={elem} className='btn-stock'
-                        checked={displayStocks.includes(elem)} onChange={this.onToggleStock} block>
+        <ToggleButtonGroup key={elem} type="checkbox" className="full-width margin-top-sm" value={selected}
+                           onChange={(sel) => this.onToggleStock(sel, [elem])}>
+          <ToggleButton id={'plot-'+elem} value={elem} className='btn-stock' block>
             {this.stockName(elem)}
           </ToggleButton>
         </ToggleButtonGroup>
@@ -151,26 +166,36 @@ class StockPanel extends Component {
     }));
   }
 
-  stockCorrelationList(arr) {
-    return (arr.map(elem =>
-      <ToggleButton key={'corr-'+elem} id={'corr-'+elem} value={elem} className='btn-stock'
-                    checked={this.state.corrSelections.includes(elem)}
-                    onChange={this.onCorrStockSelect} block>
-        {this.stockName(elem)}
-      </ToggleButton>
-    ));
+  stockCorrelationList(arr, corrSelections) {
+    return (arr.map(elem => {
+      const selected = corrSelections.includes(elem) ? [elem] : [];
+      return (
+        <ToggleButtonGroup key={'corr-'+elem} type="checkbox" value={selected}
+                           onChange={(sel) => this.onCorrStockSelect(sel, [elem])}>
+          <ToggleButton id={'corr-'+elem} value={elem} className='btn-stock' block>
+            {this.stockName(elem)}
+          </ToggleButton>
+        </ToggleButtonGroup>
+      )
+    }));
   }
 
   stockName(ticker) {
     return this.state.stocks.name ? this.state.stocks.name[ticker]+' ('+ticker+')' : ticker;
   }
 
-  currencyCorrelationList(hash) {
-    return (Object.keys(hash).map(sym =>
-      <ToggleButton key={'corr-'+sym} id={'corr-'+sym} value={sym}
-                    checked={this.state.corrSelections.includes(sym)}
-                    onChange={this.onCorrStockSelect} block>{hash[sym]}</ToggleButton>
-    ));
+  currencyCorrelationList(hash, corrSelections) {
+    return (Object.keys(hash).map(sym => {
+      const selected = corrSelections.includes(sym) ? [sym] : [];
+      return (
+        <ToggleButtonGroup key={'corr-'+sym} type="checkbox" value={selected}
+                           onChange={(sel) => this.onCorrStockSelect(sel, [sym])}>
+          <ToggleButton id={'corr-'+sym} value={sym} block>
+            {hash[sym]}
+          </ToggleButton>
+        </ToggleButtonGroup>
+      )
+    }));
   }
 
   onDateSet(event, picker) {
@@ -180,15 +205,17 @@ class StockPanel extends Component {
     });
   }
 
-  onToggleStock(event) {
-    let stock = event.target.value;
-    let add = event.target.checked;
+  onToggleStock(selection, expected) {
+
+    const stock = expected[0];
+
     this.setState(function(prevState) {
-      let displayStocks = prevState.displayStocks.slice(0);
+      const displayStocks = prevState.displayStocks.slice(0);
+      const add = !displayStocks.includes(stock);
       if (add) {
         displayStocks.push(stock);
       } else {
-        let index = displayStocks.indexOf(stock);
+        const index = displayStocks.indexOf(stock);
         if (index > -1) {
           displayStocks.splice(index, 1);
         }
@@ -198,9 +225,9 @@ class StockPanel extends Component {
   }
 
   async onSelectAllStocks(event) {
-    let category = event.target.value;
-    let add = event.target.checked;
-    let displayStocks = this.state.displayStocks;
+    const category = event.target.value;
+    const add = event.target.checked;
+    const displayStocks = this.state.displayStocks.slice(0);
     if(add){
       await this.state.stocks.categories[category].forEach((stock) => {
         if(!displayStocks.includes(stock)){
@@ -210,7 +237,7 @@ class StockPanel extends Component {
       });
     } else {
       await this.state.stocks.categories[category].forEach((stock) => {
-        let index = displayStocks.indexOf(stock);
+        const index = displayStocks.indexOf(stock);
         if (index > -1){
           displayStocks.splice(index, 1);
           deselectStock('plot-', stock);
@@ -227,44 +254,54 @@ class StockPanel extends Component {
       this.setState({corrDropdownExpanded: true});
   }
 
-  async onCorrStockSelect(event) {
-    let add = event.target.checked;
-    let stock = event.target.value;
+  async onCorrStockSelect(selection, expected) {
+
+    const add = selection.length > 0;
+    const stock = expected[0];
+
     if(add) {
-      let stockButton = document.getElementById("plot-"+stock);
+      const stockButton = document.getElementById("plot-"+stock);
       if(stockButton && stockButton.style["background-color"])
         document.getElementById("corr-"+stock).style["background-color"] = stockButton.style["background-color"];
 
       await this.setState(() => {
-        this.state.corrSelections.push(stock);
+        const corrSelections = this.state.corrSelections;
+        corrSelections.push(stock);
+        return { corrSelections }
       });
       if(this.state.corrSelections.length === 2){
 
-        let label = correlationLabel(this.state.corrSelections[0] , this.state.corrSelections[1]);
+        const label = correlationLabel(this.state.corrSelections[0] , this.state.corrSelections[1]);
         this.state.correlations.push(label);
 
         this.setState({corrSelections: [], corrDropdownExpanded: false});
       }
     } else {
       this.setState(() => {
-        let index = this.state.corrSelections.indexOf(stock);
-        if (index > -1)
-          this.state.corrSelections.splice(index, 1);
+        const corrSelections = this.state.corrSelections;
+        const index = corrSelections.indexOf(stock);
+        if (index > -1) {
+          corrSelections.splice(index, 1);
+          return { corrSelections }
+        }
       });
     }
   }
 
   noCorrData(badCorr){
-    alert("Sorry, I don't have any correlation data between "+badCorr.stock1+" and "+badCorr.stock2);
-    let badCorrCombined = correlationLabel(badCorr.stock1 , badCorr.stock2);
+
+    const syms = Object.values(badCorr);
+
+    alert(`Sorry, I don't have any correlation data between ${syms[0]} and ${syms[1]}`);
+    const badCorrCombined = correlationLabel(syms[0] , syms[1]);
     this.setState(prevState => {
-      let corrs = prevState.correlations;
+      const corrs = prevState.correlations;
       corrs.splice(corrs.indexOf(badCorrCombined), 1);
     });
   }
 
   onToggleNormalization(event) {
-    let normalized = event.target.checked;
+    const normalized = event.target.checked;
     this.setState({normalized});
   }
 
@@ -275,12 +312,12 @@ function correlationLabel(var1, var2){
 }
 
 function deselectStock(prefix, stock) {
-  let stockButton = document.getElementById(prefix+stock);
+  const stockButton = document.getElementById(prefix+stock);
   stockButton.classList.remove('active');
 }
 
 function selectStock(prefix, stock) {
-  let stockButton = document.getElementById(prefix+stock);
+  const stockButton = document.getElementById(prefix+stock);
   stockButton.classList.add('active');
 }
 
